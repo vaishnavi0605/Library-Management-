@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Library Management System</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2rem;
+      background-color: #f4f4f4;
+      color: #333;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      border-bottom: 1px solid #666;
+      padding-bottom: 0.2rem;
+      margin-top: 1.5rem;
+      font-size: 1.2rem;
+    }
+
+    form {
+      margin-bottom: 0.8rem;
+      background: #fff;
+      padding: 0.8rem;
+      border-radius: 5px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      max-width: 320px;
+      font-size: 0.9rem;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 0.4rem;
+      margin-top: 0.4rem;
+      margin-bottom: 0.8rem;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-size: 0.9rem;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #output, #booksOutput {
+      background: #fff;
+      padding: 0.8rem;
+      border-radius: 5px;
+      white-space: pre-wrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-top: 1rem;
+      max-width: 500px;
+      font-size: 0.9rem;
+    }
+
+    .section {
+      display: none;
+    }
+
+    #logoutBtn {
+      margin-top: 1rem;
+      background-color: #dc3545;
+    }
+
+    #logoutBtn:hover {
+      background-color: #c82333;
+    }
+
+    /* Position Search section to the top right */
+    #searchSection {
+      position: absolute;
+      top: 2rem;
+      right: 2rem;
+      width: 300px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📚 Library Management System</h1>
+
+  <div id="loginSection">
+    <h2>Login</h2>
+    <form id="loginForm">
+      <input name="id" placeholder="Your ID" required />
+      <select name="role">
+        <option value="student">Student</option>
+        <option value="faculty">Faculty</option>
+      </select>
+      <button type="submit">Login</button>
+    </form>
+  </div>
+
+  <div id="issueSection" class="section">
+    <h2>Issue Book</h2>
+    <form id="issueForm">
+      <input name="title" placeholder="Book Title" required />
+      <button type="submit">Issue Book</button>
+    </form>
+  </div>
+
+  <div id="returnSection" class="section">
+    <h2>Return Book</h2>
+    <form id="returnForm">
+      <input name="title" placeholder="Book Title" required />
+      <button type="submit">Return Book</button>
+    </form>
+  </div>
+
+  <div id="addSection" class="section">
+    <h2>Add Book (Faculty Only)</h2>
+    <form id="addBookForm">
+      <input name="title" placeholder="Book Title" required />
+      <input name="author" placeholder="Author" required />
+      <button type="submit">Add Book</button>
+    </form>
+  </div>
+
+  <div id="deleteSection" class="section">
+    <h2>Delete Book (Faculty Only)</h2>
+    <form id="deleteBookForm">
+      <input name="title" placeholder="Title to delete" required />
+      <button type="submit">Delete Book</button>
+    </form>
+  </div>
+
+  <div id="myBooksSection" class="section">
+    <h2>My Issued Books</h2>
+    <button id="loadBooksBtn">View My Books</button>
+    <pre id="booksOutput"></pre>
+  </div>
+
+  <button id="logoutBtn" class="section">Logout</button>
+
+  <pre id="output"></pre>
+
+  <!-- Search Section Floated to Top Right -->
+  <div id="searchSection">
+  <h2>Search Books</h2>
+  <form id="searchForm">
+    <input name="title" placeholder="Search by title" required />
+    <button type="submit">Search</button>
+  </form>
+  <pre id="searchResults"></pre> <!-- ✅ New result box -->
+</div>
+
+
+  <script>
+    const output = document.getElementById('output');
+
+    const hideAll = () => {
+      ['issueSection', 'returnSection', 'addSection', 'deleteSection', 'myBooksSection', 'logoutBtn']
+        .forEach(id => document.getElementById(id).style.display = 'none');
+    };
+
+    document.getElementById('loginForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const text = await res.text();
+      output.textContent = text;
+
+      hideAll();
+
+      if (data.role === 'faculty') {
+        document.getElementById('addSection').style.display = 'block';
+        document.getElementById('deleteSection').style.display = 'block';
+      } else if (data.role === 'student') {
+        document.getElementById('issueSection').style.display = 'block';
+        document.getElementById('returnSection').style.display = 'block';
+        document.getElementById('myBooksSection').style.display = 'block';
+      }
+
+      document.getElementById('logoutBtn').style.display = 'inline-block';
+    };
+
+    document.getElementById('logoutBtn').onclick = async () => {
+      const res = await fetch('/api/logout', { method: 'POST' });
+      output.textContent = await res.text();
+      hideAll();
+    };
+
+    document.getElementById('issueForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      const res = await fetch('/api/issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      output.textContent = await res.text();
+    };
+
+    document.getElementById('returnForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      const res = await fetch('/api/return', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      output.textContent = await res.text();
+    };
+
+    document.getElementById('searchForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      document.getElementById('searchResults').textContent = await res.text();
+
+    };
+
+    document.getElementById('addBookForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      const res = await fetch('/api/add-book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      output.textContent = await res.text();
+    };
+
+    document.getElementById('deleteBookForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      const res = await fetch('/api/delete-book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      output.textContent = await res.text();
+    };
+
+    document.getElementById('loadBooksBtn').onclick = async () => {
+      const res = await fetch('/api/my-books');
+      document.getElementById('booksOutput').textContent = await res.text();
+    };
+  </script>
+</body>
+</html>
